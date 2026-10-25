@@ -1,2 +1,3 @@
 # ZalithLauncher2-Community
 基于ZalithLauncher2开发的社区版
+此是社区版非官方版，目前处于测试版
