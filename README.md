@@ -1,0 +1,2 @@
+# ZalithLauncher2-Community
+基于ZalithLauncher2开发的社区版
