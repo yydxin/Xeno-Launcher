@@ -1,3 +1,3 @@
-# ZalithLauncher2-Community
-基于ZalithLauncher2开发的社区版
-此是社区版非官方版，目前处于测试版
+基于ZalithLauncher2开发的安卓启动器
+Xeno-Launcher在ZalithLauncher2基础上改进开发
+主要是变得更智能更方便使用
