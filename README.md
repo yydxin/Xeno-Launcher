@@ -74,6 +74,12 @@ bash gradlew --no-daemon -Darch=arm64 \
 - 调试时以设置页显示的实际配置目录为准，不要默认检查公共 `/sdcard/MG` 目录。
 - 提交反馈前请移除日志中的账号、令牌、聊天内容和其它个人信息。
 
+## Contributors / 贡献者
+
+项目由 [yydxin](https://github.com/yydxin) 维护，并感谢 **OpenAI 编码助手（ChatGPT / OpenAI）** 与 **DeepSeek** 的 AI 辅助协作。
+
+完整说明见 [CONTRIBUTORS.md](CONTRIBUTORS.md)。AI 工具致谢不代表相关公司官方参与或背书；GitHub 侧栏的 Contributors 仍由真实提交账号自动生成。
+
 ## 许可证与致谢
 
 - 上游 [ZalithLauncher2](https://github.com/ZalithLauncher/ZalithLauncher2)、MovTery 及贡献者；启动核心同时承袭 PojavLauncher。
