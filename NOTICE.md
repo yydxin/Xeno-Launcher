@@ -6,7 +6,7 @@ XenoLauncher（包名 `io.github.yydxin.xenolauncher`）是基于 **ZalithLaunch
 
 - 上游项目：https://github.com/ZalithLauncher/ZalithLauncher2
 - 上游作者：MovTery 及 ZalithLauncher2 贡献者
-- 上游许可证：GNU General Public License v3.0，含上游附加条款（见 `LICENSE`）
+- 上游许可证：GNU General Public License v3.0；保留GPL原文与[上游随附副本](licenses/UPSTREAM-GPL-3.0.txt)，附加条款和第三方归属见[上游许可说明](docs/UPSTREAM_NOTICES.md)
 - 启动核心来源于 PojavLauncher（GPL-3.0）
 
 本项目保留上游版权声明、LICENSE 与第三方许可文本；未移除、未替换上游署名。

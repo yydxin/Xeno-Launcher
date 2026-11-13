@@ -77,6 +77,6 @@ bash gradlew --no-daemon -Darch=arm64 \
 ## 许可证与致谢
 
 - 上游 [ZalithLauncher2](https://github.com/ZalithLauncher/ZalithLauncher2)、MovTery 及贡献者；启动核心同时承袭 PojavLauncher。
-- 本项目遵循 [GPL-3.0](LICENSE)，上游归属与修改说明见 [NOTICE.md](NOTICE.md)。
+- 本项目遵循 [GPL-3.0](LICENSE)，上游归属与修改说明见 [NOTICE.md](NOTICE.md)，[上游附加条款及第三方归属](docs/UPSTREAM_NOTICES.md)亦保留。
 - [MobileGlues](https://github.com/MobileGL-Dev/MobileGlues) 使用 LGPL-2.1，相关许可随工程保留。
 - 其余第三方许可见源码和应用内“开源许可”。
