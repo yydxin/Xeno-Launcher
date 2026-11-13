@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Android 12+（API 31）游戏模式配置 / Android 13+（API 33）游戏模式干预项配置。
+
+  - supportsPerformanceGameMode / supportsBatteryGameMode：
+    允许用户为该应用单独选择「性能」或「省电」游戏模式。
+  - allowGameDownscaling / allowGameFpsOverride / allowGameAngleDriver（API 33）：
+    显式拒绝系统对游戏做降分辨率、降帧率或强制 ANGLE 驱动的干预。
+    Minecraft Java 版经启动器转译渲染，分辨率与帧率由启动器自身（分辨率缩放、
+    刷新率请求、垂直同步）控制，系统级覆写会破坏帧率稳定性，因此全部关闭。
+-->
+<game-mode-config xmlns:android="http://schemas.android.com/apk/res/android"
+    android:supportsBatteryGameMode="true"
+    android:supportsPerformanceGameMode="true"
+    android:allowGameAngleDriver="false"
+    android:allowGameDownscaling="false"
+    android:allowGameFpsOverride="false" />

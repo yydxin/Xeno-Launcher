@@ -1,0 +1,647 @@
+/*
+ * Zalith Launcher 2
+ * Copyright (C) 2025 MovTery <movtery228@qq.com> and contributors
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/gpl-3.0.txt>.
+ */
+
+package com.movtery.zalithlauncher.game.account.microsoft
+
+import android.content.Context
+import android.os.Build
+import com.movtery.zalithlauncher.BuildConfig
+
+import com.movtery.zalithlauncher.BuildKeys
+import com.movtery.zalithlauncher.game.account.Account
+import com.movtery.zalithlauncher.game.account.AccountType
+import com.movtery.zalithlauncher.game.account.AccountsManager
+import com.movtery.zalithlauncher.game.account.CredentialsExpiredException
+import com.movtery.zalithlauncher.game.account.microsoft.MinecraftProfileException.ExceptionStatus.BLOCKED_IP
+import com.movtery.zalithlauncher.game.account.microsoft.MinecraftProfileException.ExceptionStatus.FREQUENT
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.BANNED
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.BLOCKED_REGION
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.NOT_ACCEPTED_SERVICE
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.REACHED_PLAYTIME_LIMIT
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.REQUIRES_PROOF_OF_AGE
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.RESTRICTED
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.UNDERAGE
+import com.movtery.zalithlauncher.game.account.microsoft.XboxLoginException.ExceptionStatus.UNREGISTERED
+import com.movtery.zalithlauncher.game.account.microsoft.models.DeviceCodeResponse
+import com.movtery.zalithlauncher.game.account.microsoft.models.MinecraftAuthResponse
+import com.movtery.zalithlauncher.game.account.microsoft.models.TokenResponse
+import com.movtery.zalithlauncher.game.account.microsoft.models.XBLProperties
+import com.movtery.zalithlauncher.game.account.microsoft.models.XBLRequest
+import com.movtery.zalithlauncher.game.account.microsoft.models.XSTSAuthResult
+import com.movtery.zalithlauncher.game.account.microsoft.models.XSTSProperties
+import com.movtery.zalithlauncher.game.account.microsoft.models.XSTSRequest
+import com.movtery.zalithlauncher.game.account.wardrobe.SkinModelType
+import com.movtery.zalithlauncher.game.account.yggdrasil.findUsing
+import com.movtery.zalithlauncher.game.account.yggdrasil.getPlayerProfile
+import com.movtery.zalithlauncher.game.account.yggdrasil.getSkinModel
+import com.movtery.zalithlauncher.path.GLOBAL_CLIENT
+import com.movtery.zalithlauncher.utils.logging.Logger
+import com.movtery.zalithlauncher.utils.network.httpPostJson
+import com.movtery.zalithlauncher.utils.network.safeBodyAsJson
+import com.movtery.zalithlauncher.utils.network.submitForm
+import com.movtery.zalithlauncher.utils.string.toUuidStr
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.plugins.ResponseException
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.Parameters
+import io.ktor.http.contentType
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.milliseconds
+
+private const val TAG = "MicrosoftAuth"
+
+private val SCOPES = listOf("XboxLive.signin", "offline_access", "openid", "profile", "email")
+private const val TENANT = "/consumers"
+
+/**
+ * 轮询令牌时允许的最大连续网络失败次数
+ * 网络环境较差时，偶发的失败不应中断登录，但持续失败说明网络不可用，应提前放弃
+ */
+private const val MAX_CONSECUTIVE_POLL_FAILURES = 5
+
+const val MICROSOFT_AUTH_URL = "https://login.microsoftonline.com"
+const val LIVE_AUTH_URL = "https://login.live.com"
+const val XBL_AUTH_URL = "https://user.auth.xboxlive.com"
+const val XSTS_AUTH_URL = "https://xsts.auth.xboxlive.com"
+const val MINECRAFT_SERVICES_URL = "https://api.minecraftservices.com"
+
+/**
+ * 微软 Xbox Live 公共客户端（旧 Live Connect）。
+ * 该 ID 是微软公开客户端，不是本项目的 Azure 应用，也不是上游启动器的私有凭据；
+ * 参考 Minecraft Wiki 启动器教程。微软可能随时调整该旧流程。
+ */
+const val LEGACY_LIVE_CLIENT_ID = "00000000402b5328"
+const val LEGACY_LIVE_SCOPE = "service::user.auth.xboxlive.com::MBI_SSL"
+
+fun isCustomAadConfigured(clientId: String = BuildKeys.OAUTH_CLIENT_ID): Boolean =
+    clientId.isNotBlank() && !clientId.contains("YOUR_", ignoreCase = true)
+
+fun isLegacyLiveMode(): Boolean = !isCustomAadConfigured()
+
+/** 登录链路步骤，用于错误提示与诊断，不包含任何令牌。 */
+enum class MicrosoftAuthStep {
+    DEVICE_CODE,
+    ACCESS_TOKEN,
+    XBOX_LIVE,
+    XSTS,
+    MINECRAFT_LOGIN,
+    GAME_OWNERSHIP,
+    PLAYER_PROFILE
+}
+
+class MicrosoftAuthConfigException : Exception(
+    "尚未配置微软登录凭据（OAuth client_id）"
+)
+
+class MicrosoftAuthStepException(
+    val step: MicrosoftAuthStep,
+    val httpStatus: Int?,
+    val serverSummary: String?,
+    cause: Throwable? = null
+) : Exception(
+    "Microsoft auth failed at $step (HTTP ${httpStatus ?: "none"}): ${serverSummary.orEmpty()}",
+    cause
+)
+
+fun isMicrosoftAuthConfigured(clientId: String = BuildKeys.OAUTH_CLIENT_ID): Boolean =
+    clientId.isNotBlank() && !clientId.contains("YOUR_", ignoreCase = true)
+
+/** 登录诊断：只记录步骤/状态码/服务端摘要，不记录令牌、授权码或 Key。 */
+object MicrosoftAuthDiagnostics {
+    @Volatile
+    private var lastError: String? = null
+
+    fun record(error: Throwable) {
+        lastError = when (error) {
+            is MicrosoftAuthStepException -> buildString {
+                append("step=").append(error.step)
+                append(" status=").append(error.httpStatus ?: "none")
+                error.serverSummary?.let { append(" detail=").append(it.take(160)) }
+            }
+            is MicrosoftAuthConfigException -> "config=client_id_missing"
+            is XboxLoginException -> "xbox=" + error.status.name
+            else -> "error=" + error::class.java.simpleName
+        }
+    }
+
+    fun build(context: Context): String = buildString {
+        appendLine("XenoLauncher " + BuildConfig.VERSION_NAME)
+        appendLine("package=" + context.packageName)
+        appendLine("Android=" + Build.VERSION.RELEASE + " (API " + Build.VERSION.SDK_INT + ")")
+        appendLine("auth_mode=" + if (isLegacyLiveMode()) "legacy_live_public_client" else "custom_aad")
+        appendLine("oauth_client_id=" + if (isCustomAadConfigured()) "configured" else "not set (legacy)")
+        val proxyHost = System.getProperty("http.proxyHost")
+        val proxyPort = System.getProperty("http.proxyPort")
+        appendLine("proxy=" + if (proxyHost.isNullOrBlank()) "none/system" else "$proxyHost:$proxyPort")
+        appendLine("last_error=" + (lastError ?: "none"))
+    }
+}
+
+private fun requireMicrosoftAuthConfigured() {
+    if (!isMicrosoftAuthConfigured()) throw MicrosoftAuthConfigException()
+}
+
+/** XSTS 的 XErr 到友好状态的映射；未知码保持 null，由调用方保留原始错误。 */
+internal fun xerrStatus(code: String?): XboxLoginException.ExceptionStatus? = when (code) {
+    "2148916227" -> BANNED
+    "2148916229" -> RESTRICTED
+    "2148916233" -> UNREGISTERED
+    "2148916234" -> NOT_ACCEPTED_SERVICE
+    "2148916235" -> BLOCKED_REGION
+    "2148916236" -> REQUIRES_PROOF_OF_AGE
+    "2148916237" -> REACHED_PLAYTIME_LIMIT
+    "2148916238" -> UNDERAGE
+    else -> null
+}
+
+/** 只提取服务端错误字段，截断 200 字；绝不返回请求头/令牌。 */
+internal fun microsoftErrorSummary(body: JsonObject?): String? {
+    if (body == null) return null
+    val text = listOf("error_description", "error", "Message", "message", "XErr")
+        .firstNotNullOfOrNull { key ->
+            runCatching {
+                body[key]?.jsonPrimitive?.content?.takeIf { it.isNotBlank() }
+            }.getOrNull()
+        } ?: return null
+    return text.replace(Regex("\\s+"), " ").trim().take(200).ifBlank { null }
+}
+
+private suspend fun ResponseException.errorSummary(): String? =
+    runCatching { microsoftErrorSummary(response.safeBodyAsJson<JsonObject>()) }.getOrNull()
+
+private suspend fun ResponseException.asStep(step: MicrosoftAuthStep): MicrosoftAuthStepException =
+    MicrosoftAuthStepException(step, response.status.value, errorSummary(), this)
+
+private suspend fun <T> authStep(step: MicrosoftAuthStep, block: suspend () -> T): T = try {
+    block()
+} catch (e: CancellationException) {
+    throw e
+} catch (e: XboxLoginException) {
+    throw e
+} catch (e: CredentialsExpiredException) {
+    throw e
+} catch (e: MicrosoftAuthStepException) {
+    throw e
+} catch (e: MicrosoftAuthConfigException) {
+    throw e
+} catch (e: ResponseException) {
+    throw e.asStep(step)
+}
+
+/**
+ * 从 Microsoft 身份验证终端节点获取设备代码响应
+ * 设备代码用于在单独的设备或浏览器上授权用户
+ */
+suspend fun fetchDeviceCodeResponse(context: CoroutineContext): DeviceCodeResponse = coroutineScope {
+    if (isLegacyLiveMode()) {
+        val response: JsonObject = try {
+            withRetry {
+                submitForm(
+                    url = "$LIVE_AUTH_URL/oauth20_connect.srf",
+                    parameters = Parameters.build {
+                        append("client_id", LEGACY_LIVE_CLIENT_ID)
+                        append("scope", LEGACY_LIVE_SCOPE)
+                        append("response_type", "device_code")
+                    },
+                    context = context
+                )
+            }
+        } catch (e: ResponseException) {
+            throw e.asStep(MicrosoftAuthStep.DEVICE_CODE)
+        }
+        val deviceCode = response["device_code"]?.jsonPrimitive?.content
+        val userCode = response["user_code"]?.jsonPrimitive?.content
+        if (deviceCode.isNullOrBlank() || userCode.isNullOrBlank()) {
+            throw MicrosoftAuthStepException(
+                MicrosoftAuthStep.DEVICE_CODE,
+                null,
+                microsoftErrorSummary(response) ?: "微软未返回 device_code"
+            )
+        }
+        return@coroutineScope DeviceCodeResponse(
+            userCode = userCode,
+            deviceCode = deviceCode,
+            verificationUrl = response["verification_uri"]?.jsonPrimitive?.content
+                ?: "https://www.microsoft.com/link",
+            expiresIn = response["expires_in"]?.jsonPrimitive?.int ?: 900,
+            interval = (response["interval"]?.jsonPrimitive?.int ?: 5).coerceAtLeast(2),
+            message = response["message"]?.jsonPrimitive?.content.orEmpty()
+        )
+    }
+
+    try {
+        withRetry {
+            submitForm<DeviceCodeResponse>(
+                url = "$MICROSOFT_AUTH_URL$TENANT/oauth2/v2.0/devicecode",
+                parameters = Parameters.build {
+                    append("client_id", BuildKeys.OAUTH_CLIENT_ID)
+                    append("scope", SCOPES.joinToString(" "))
+                },
+                context = context
+            )
+        }
+    } catch (e: ResponseException) {
+        throw e.asStep(MicrosoftAuthStep.DEVICE_CODE)
+    }
+}
+
+/**
+ * 使用设备代码流从 Microsoft Azure Active Directory 检索访问令牌和刷新令牌
+ * 此函数会定期轮询 Microsoft 令牌端点，直到获取访问令牌或超时
+ */
+suspend fun getTokenResponse(
+    codeResponse: DeviceCodeResponse,
+    context: CoroutineContext,
+    checkCancelled: suspend (time: Int) -> Boolean
+): TokenResponse = coroutineScope {
+    var pollingInterval = codeResponse.interval * 1000L
+    val expireTime = System.currentTimeMillis() + codeResponse.expiresIn * 1000L
+
+    var cancelled = 0
+    suspend fun checkIsReallyCancelled(): Boolean {
+        if (checkCancelled(cancelled)) cancelled++
+        return cancelled > 1
+    }
+
+    //连续的网络层失败次数，避免网络长期不可用时无意义地轮询到设备码过期
+    var consecutiveFailures = 0
+
+    Logger.debug(TAG, "Polling for token, interval = ${pollingInterval}ms, expires in ${codeResponse.expiresIn}s")
+
+    while (System.currentTimeMillis() < expireTime) {
+        context.ensureActive()
+
+        try {
+            val response: JsonObject = if (isLegacyLiveMode()) {
+                submitForm(
+                    "$LIVE_AUTH_URL/oauth20_token.srf",
+                    parameters = Parameters.build {
+                        append("client_id", LEGACY_LIVE_CLIENT_ID)
+                        append("grant_type", "device_code")
+                        append("device_code", codeResponse.deviceCode)
+                        append("scope", LEGACY_LIVE_SCOPE)
+                    },
+                    context = context
+                )
+            } else {
+                submitForm(
+                    "$MICROSOFT_AUTH_URL$TENANT/oauth2/v2.0/token",
+                    parameters = Parameters.build {
+                        append("grant_type", "urn:ietf:params:oauth:grant-type:device_code")
+                        append("device_code", codeResponse.deviceCode)
+                        append("client_id", BuildKeys.OAUTH_CLIENT_ID)
+                    },
+                    context = context
+                )
+            }
+            consecutiveFailures = 0
+
+            if (response["token_type"]?.jsonPrimitive?.content == "Bearer") {
+                Logger.debug(TAG, "Access token successfully retrieved")
+                return@coroutineScope TokenResponse(
+                    accessToken = response["access_token"].text(),
+                    refreshToken = response["refresh_token"].text(),
+                    expiresIn = response["expires_in"]?.jsonPrimitive?.int ?: 0
+                )
+            }
+            Logger.warning(TAG, "Token endpoint responded without a Bearer token, continuing to poll")
+        } catch (e: ClientRequestException) {
+            when (val error = e.errorCode()) {
+                // 服务器正常响应，说明网络可用
+                "authorization_pending" -> consecutiveFailures = 0 // 正常情况，继续轮询
+                "slow_down" -> {
+                    consecutiveFailures = 0
+                    pollingInterval += 1000L
+                    Logger.debug(TAG, "Slowing down polling to ${pollingInterval}ms")
+                }
+                else -> {
+                    Logger.error(TAG, "Token endpoint rejected the polling request: error = $error", e)
+                    throw e.asStep(MicrosoftAuthStep.ACCESS_TOKEN)
+                }
+            }
+        } catch (e: CancellationException) {
+            Logger.debug(TAG, "Authentication cancelled")
+            throw e
+        } catch (e: Exception) {
+            // 轮询期间的临时性错误（网络波动、DNS解析失败、服务器5xx、请求超时等）不应中断整个登录流程
+            // 只要设备码尚未过期，就继续轮询；但网络持续不可用时应提前放弃
+            consecutiveFailures++
+            if (consecutiveFailures >= MAX_CONSECUTIVE_POLL_FAILURES ||
+                System.currentTimeMillis() + pollingInterval >= expireTime
+            ) {
+                Logger.error(TAG, "Polling failed $consecutiveFailures time(s) in a row, giving up", e)
+                throw e
+            }
+            Logger.warning(TAG, "Polling failed, will retry in ${pollingInterval}ms: ${e::class.simpleName}: ${e.message}")
+        }
+
+        if (checkIsReallyCancelled()) {
+            Logger.debug(TAG, "The user left the web page, cancelling the authentication")
+            throw CancellationException("Authentication cancelled")
+        }
+
+        delay(pollingInterval.milliseconds).also {
+            context.ensureActive()
+        }
+    }
+    Logger.warning(TAG, "Device code expired before the user completed authorization")
+    throw HttpRequestTimeoutException("Authentication timed out!", expireTime)
+}
+
+/**
+ * 从 OAuth 错误响应中解析 error 字段
+ */
+private suspend fun ClientRequestException.errorCode(): String? {
+    return runCatching {
+        response.safeBodyAsJson<JsonObject>()["error"]?.jsonPrimitive?.content
+    }.getOrNull()
+}
+
+/**
+ * 使用不同的身份验证类型异步验证用户，并检索其 Minecraft 帐户信息
+ * 函数通过执行一系列步骤来编排身份验证过程，具体取决于提供的 [authType]。
+ *
+ * 支持刷新现有访问令牌或使用提供的访问令牌。然后，继续使用 Xbox Live （XBL）、Xbox 安全令牌服务 （XSTS） 进行身份验证，最后访问 Minecraft。
+ *
+ * 支持验证用户是否拥有游戏，然后创建 [Account] 对象。
+ *
+ * @param statusUpdate 验证执行到哪个步骤，通过这个进行回调更新
+ */
+suspend fun microsoftAuthAsync(
+    authType: AuthType,
+    refreshToken: String,
+    accessToken: String = "NULL",
+    context: CoroutineContext,
+    statusUpdate: (AsyncStatus) -> Unit,
+): Account = coroutineScope {
+    val (finalAccessToken, newRefreshToken) = when (authType) {
+        AuthType.Refresh -> authStep(MicrosoftAuthStep.ACCESS_TOKEN) {
+            refreshAccessToken(refreshToken, statusUpdate, context)
+        }
+        else -> Pair(accessToken, refreshToken)
+    }
+
+    Logger.debug(TAG, "Authenticating with Xbox Live (XBL)")
+    val xblToken = authStep(MicrosoftAuthStep.XBOX_LIVE) {
+        authenticateXBL(finalAccessToken, statusUpdate)
+    }
+    Logger.debug(TAG, "Authenticating with Xbox Secure Token Service (XSTS)")
+    val xstsToken = authStep(MicrosoftAuthStep.XSTS) {
+        authenticateXSTS(xblToken.first, xblToken.second, statusUpdate, context)
+    }
+    Logger.debug(TAG, "Authenticating with Minecraft services")
+    val authResponse = authStep(MicrosoftAuthStep.MINECRAFT_LOGIN) {
+        authenticateMinecraft(xstsToken, statusUpdate, context)
+    }
+    Logger.debug(TAG, "Verifying Minecraft ownership")
+    authStep(MicrosoftAuthStep.GAME_OWNERSHIP) {
+        verifyGameOwnership(authResponse.accessToken, statusUpdate)
+    }
+
+    return@coroutineScope authStep(MicrosoftAuthStep.PLAYER_PROFILE) {
+        createAccount(authResponse, newRefreshToken, xblToken.second, statusUpdate)
+    }
+}
+
+/**
+ * 校验缓存的 accessToken 是否仍被服务端接受
+ * @return false 表示服务端已拒绝该凭据
+ */
+suspend fun validateAccessToken(account: Account): Boolean = try {
+    getPlayerProfile(MINECRAFT_SERVICES_URL, account.accessToken)
+    true
+} catch (e: MinecraftProfileException) {
+    false
+} catch (e: ResponseException) {
+    when (e.response.status.value) {
+        401, 403 -> false
+        else -> throw e
+    }
+}
+
+private suspend fun refreshAccessToken(
+    refreshToken: String,
+    update: (AsyncStatus) -> Unit,
+    context: CoroutineContext
+): Pair<String, String> {
+    update(AsyncStatus.GETTING_ACCESS_TOKEN)
+
+    return authStep(MicrosoftAuthStep.ACCESS_TOKEN) {
+        withRetry {
+            try {
+                val legacy = isLegacyLiveMode()
+                val response = submitForm<JsonObject>(
+                    url = if (legacy) {
+                        "$LIVE_AUTH_URL/oauth20_token.srf"
+                    } else {
+                        "$MICROSOFT_AUTH_URL$TENANT/oauth2/v2.0/token"
+                    },
+                    parameters = Parameters.build {
+                        append("client_id", if (legacy) LEGACY_LIVE_CLIENT_ID else BuildKeys.OAUTH_CLIENT_ID)
+                        append("refresh_token", refreshToken)
+                        append("grant_type", "refresh_token")
+                        if (legacy) append("scope", LEGACY_LIVE_SCOPE)
+                    },
+                    context = context
+                )
+            Pair(
+                response["access_token"].text(),
+                response["refresh_token"]?.jsonPrimitive?.content ?: refreshToken
+            )
+            } catch (e: ClientRequestException) {
+                //刷新令牌已被撤销或失效，无法自动恢复
+                if (e.errorCode() == "invalid_grant") throw CredentialsExpiredException()
+                throw e
+            }
+        }
+    }
+}
+
+private suspend fun authenticateXBL(accessToken: String, update: (AsyncStatus) -> Unit): Pair<String, String> {
+    update(AsyncStatus.GETTING_XBL_TOKEN)
+
+    suspend fun requestXblToken(rpsTicket: String): Pair<String, String> {
+        val requestBody = XBLRequest(
+            properties = XBLProperties(
+                authMethod = "RPS",
+                siteName = "user.auth.xboxlive.com",
+                rpsTicket = rpsTicket
+            ),
+            relyingParty = "http://auth.xboxlive.com",
+            tokenType = "JWT"
+        )
+
+        val response = GLOBAL_CLIENT.post("$XBL_AUTH_URL/user/authenticate") {
+            contentType(ContentType.Application.Json)
+            setBody(requestBody)
+        }.safeBodyAsJson<JsonObject>()
+
+        //提取uhs
+        val uhs = response["DisplayClaims"]?.jsonObject
+            ?.get("xui")?.jsonArray
+            ?.firstOrNull()?.jsonObject
+            ?.get("uhs")?.jsonPrimitive
+            ?.content ?: throw Exception("Missing uhs in XBL response")
+
+        return Pair(response["Token"].text(), uhs)
+    }
+
+    val legacyFirst = isLegacyLiveMode()
+    return withRetry {
+        try {
+            requestXblToken(if (legacyFirst) accessToken else "d=$accessToken")
+        } catch (e: ClientRequestException) {
+            // 旧 Live 客户端使用裸 token；AAD v2 使用 d= 前缀。400 时互换重试一次。
+            if (e.response.status.value == 400) {
+                Logger.warning(TAG, "XBL authentication rejected the current RpsTicket form, retrying with the alternate form")
+                requestXblToken(if (legacyFirst) "d=$accessToken" else accessToken)
+            } else throw e
+        }
+    }
+}
+
+private suspend fun authenticateXSTS(
+    xblToken: String,
+    uhs: String,
+    update: (AsyncStatus) -> Unit,
+    context: CoroutineContext
+): XSTSAuthResult {
+    update(AsyncStatus.GETTING_XSTS_TOKEN)
+
+    return withRetry {
+        try {
+            val response = httpPostJson<JsonObject>(
+                url = "$XSTS_AUTH_URL/xsts/authorize",
+                body = XSTSRequest(
+                    properties = XSTSProperties(
+                        sandboxId = "RETAIL",
+                        userTokens = listOf(xblToken)
+                    ),
+                    relyingParty = "rp://api.minecraftservices.com/",
+                    tokenType = "JWT"
+                ),
+                context = context
+            )
+
+            XSTSAuthResult(token = response["Token"].text(), uhs = uhs)
+        } catch (e: ClientRequestException) {
+            // XSTS 对账号类问题统一返回 4xx 及 XErr 错误码，expectSuccess 会提前抛出异常
+            // 因此必须从异常响应体中解析 XErr，才能向用户展示真实的失败原因
+            val errorBody = runCatching { e.response.safeBodyAsJson<JsonObject>() }.getOrNull()
+            val xErr = errorBody?.get("XErr").text()
+            val status = xerrStatus(xErr)
+            if (status != null) throw XboxLoginException(status)
+            Logger.error(
+                TAG,
+                "XSTS authentication failed: status = ${e.response.status}, XErr = $xErr, message = ${errorBody?.get("Message").text()}"
+            )
+            throw e
+        }
+    }
+}
+
+private suspend fun authenticateMinecraft(
+    xstsResult: XSTSAuthResult,
+    update: (AsyncStatus) -> Unit,
+    context: CoroutineContext
+): MinecraftAuthResponse {
+    update(AsyncStatus.AUTHENTICATE_MINECRAFT)
+
+    return withRetry {
+        runCatching {
+            httpPostJson<MinecraftAuthResponse>(
+                url = "$MINECRAFT_SERVICES_URL/authentication/login_with_xbox",
+                body = mapOf("identityToken" to "XBL3.0 x=${xstsResult.uhs};${xstsResult.token}"),
+                context = context
+            )
+        }.onFailure { e ->
+            if (e is ResponseException && e.response.status.value == 429) {
+                throw MinecraftProfileException(FREQUENT)
+            }
+        }.getOrThrow()
+    }
+}
+
+private suspend fun verifyGameOwnership(accessToken: String, update: (AsyncStatus) -> Unit) {
+    update(AsyncStatus.VERIFY_GAME_OWNERSHIP)
+    withRetry {
+        val response = GLOBAL_CLIENT.get("$MINECRAFT_SERVICES_URL/entitlements/mcstore") {
+            header(HttpHeaders.Authorization, "Bearer $accessToken")
+        }
+        if (response.safeBodyAsJson<JsonObject>()["items"]?.jsonArray?.isEmpty() != false) {
+            throw NotPurchasedMinecraftException()
+        }
+    }
+}
+
+private suspend fun createAccount(
+    authResponse: MinecraftAuthResponse,
+    refreshToken: String,
+    uhs: String,
+    statusUpdate: (AsyncStatus) -> Unit
+): Account {
+    statusUpdate(AsyncStatus.GETTING_PLAYER_PROFILE)
+
+    val profile = getPlayerProfile(
+        apiUrl = MINECRAFT_SERVICES_URL,
+        accessToken = authResponse.accessToken
+    )
+
+    val profileId = profile.id
+    //避免同一个账号反复添加
+    val account = AccountsManager.loadFromProfileID(profileId, AccountType.MICROSOFT.tag) ?: Account()
+
+    return account.apply {
+        this.username = profile.name
+        this.accessToken = authResponse.accessToken
+        this.expiresAt = System.currentTimeMillis() + authResponse.expiresIn * 1000
+        this.accountType = AccountType.MICROSOFT.tag
+        this.clientToken = BuildKeys.LAUNCHER_NAME.toUuidStr().replace("-", "")
+        this.profileId = profileId
+        this.refreshToken = refreshToken.ifEmpty { "None" }
+        this.xUid = uhs
+        this.skinModelType = profile.skins.findUsing()?.getSkinModel() ?: SkinModelType.NONE
+    }
+}
+
+private fun JsonElement?.text() = this?.jsonPrimitive?.content.orEmpty()
+
+private suspend fun <T> withRetry(
+    maxRetries: Int = 3,
+    initialDelay: Long = 1000,
+    maxDelay: Long = 10_000,
+    block: suspend () -> T
+): T = com.movtery.zalithlauncher.utils.network.withRetry(
+    "MicrosoftAuthenticator", maxRetries, initialDelay, maxDelay, block
+)

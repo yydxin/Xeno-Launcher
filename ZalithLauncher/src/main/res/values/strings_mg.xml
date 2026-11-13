@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MobileGlues 内置渲染器的界面文案（默认中文）。
+  所有键名统一使用 mg_ 前缀，避免与主 strings.xml 冲突。
+-->
+<resources>
+
+    <!-- 页面与渲染器设置入口 -->
+    <string name="mg_settings_title">MobileGlues 设置</string>
+    <string name="mg_screen_not_current_warning">当前全局渲染器不是 MobileGlues。以下配置仍可编辑并保存，切换到 MobileGlues 后生效。</string>
+
+    <!-- 运行状态卡 -->
+    <string name="mg_status_title">运行状态</string>
+    <string name="mg_status_summary">以下信息来自设备与配置目录的只读检查，不会修改任何文件。</string>
+    <string name="mg_status_loading">正在读取状态…</string>
+    <string name="mg_status_library">渲染器库 libmobileglues.so</string>
+    <string name="mg_status_present_with_size">已找到（%1$s）</string>
+    <string name="mg_status_missing">缺失</string>
+    <string name="mg_status_abi">设备 ABI</string>
+    <string name="mg_status_abi_support">ABI 兼容性</string>
+    <string name="mg_status_abi_supported">支持（%1$s）</string>
+    <string name="mg_status_abi_unsupported">不支持，需要 %1$s</string>
+    <string name="mg_status_gles">系统 GLES 版本</string>
+    <string name="mg_status_unknown">未知</string>
+    <string name="mg_status_config_dir">配置目录</string>
+    <string name="mg_status_config_file">config.json</string>
+    <string name="mg_status_config_ready">存在且可解析</string>
+    <string name="mg_status_config_missing">尚未生成（启动游戏时自动创建）</string>
+    <string name="mg_status_config_invalid">存在但无法解析，启动时会被备份并重建</string>
+    <string name="mg_status_log">运行日志 latest.log</string>
+    <string name="mg_status_log_value">%1$s · %2$s</string>
+    <string name="mg_status_log_missing">尚未生成</string>
+    <string name="mg_status_current">当前是否生效</string>
+    <string name="mg_status_current_yes">是</string>
+    <string name="mg_status_current_no">否</string>
+    <string name="mg_status_checked_at">检查时间</string>
+
+    <!-- 状态检查发现的问题 -->
+    <string name="mg_issue_library_missing">问题：APK 中没有 libmobileglues.so，请确认已把预编译库放入 jniLibs/arm64-v8a。</string>
+    <string name="mg_issue_abi_unsupported">问题：当前设备不支持 arm64-v8a，MobileGlues 仅有 arm64-v8a 预编译库。</string>
+    <string name="mg_issue_gles_unknown">问题：无法读取系统 GLES 版本。</string>
+    <string name="mg_issue_gles_low">问题：系统 GLES 版本低于 3.0，MobileGlues 无法工作。</string>
+    <string name="mg_issue_config_missing">提示：config.json 尚未生成，启动游戏时会自动创建。</string>
+    <string name="mg_issue_config_invalid">问题：config.json 不是合法配置，启动时会备份为 config.json.broken 并重建。</string>
+    <string name="mg_issue_log_missing">提示：latest.log 尚未生成，用 MobileGlues 启动一次游戏后即可查看。</string>
+    <string name="mg_issue_inspection_failed">问题：状态检查失败，请重新打开此页面或查看启动器日志。</string>
+
+    <!-- ANGLE 后端 -->
+    <string name="mg_enable_angle_title">ANGLE 后端</string>
+    <string name="mg_enable_angle_summary">控制 MobileGlues 是否使用 ANGLE 提供的 GLES 实现；部分驱动上可改善兼容性，也可能降低性能。</string>
+    <string name="mg_angle_mode_disable_if_possible">尽可能禁用（DisableIfPossible，默认）</string>
+    <string name="mg_angle_mode_enable_if_possible">尽可能启用（EnableIfPossible）</string>
+    <string name="mg_angle_mode_force_disable">强制禁用（ForceDisable）</string>
+    <string name="mg_angle_mode_force_enable">强制启用（ForceEnable）</string>
+
+    <!-- 错误检查 -->
+    <string name="mg_enable_noerror_title">错误检查</string>
+    <string name="mg_enable_noerror_summary">降低或关闭 GL 错误检查，可减少部分游戏的 CPU 开销，但更难定位渲染错误。</string>
+    <string name="mg_noerror_auto">自动（默认）</string>
+    <string name="mg_noerror_disable">禁用错误检查</string>
+    <string name="mg_noerror_level1">等级 1</string>
+    <string name="mg_noerror_level2">等级 2</string>
+
+    <!-- GL 版本 -->
+    <string name="mg_custom_gl_version_title">向游戏报告的 GL 版本</string>
+    <string name="mg_custom_gl_version_summary">0 表示 MobileGlues 默认的 4.0；34 到 39 会被 MobileGlues 夹取为 3.3，因此这里只列出有效档位。</string>
+    <string name="mg_gl_version_default">默认（4.0）</string>
+    <string name="mg_gl_version_value">%1$d.%2$d</string>
+
+    <!-- FSR -->
+    <string name="mg_fsr_title">FSR 1.0 超分辨率</string>
+    <string name="mg_fsr_summary">使用 FSR 1.0 在较低渲染分辨率下上采样，档位越低性能越好、画质越差。</string>
+    <string name="mg_fsr_disabled">关闭（默认）</string>
+    <string name="mg_fsr_ultra_quality">超高质量</string>
+    <string name="mg_fsr_quality">质量</string>
+    <string name="mg_fsr_balanced">平衡</string>
+    <string name="mg_fsr_performance">性能</string>
+
+    <!-- ANGLE 深度清除修正 -->
+    <string name="mg_depth_clear_title">ANGLE 深度清除修正</string>
+    <string name="mg_depth_clear_summary">修正 ANGLE 后端下的深度缓冲清除异常；画面闪烁或深度错误时可尝试切换模式。</string>
+    <string name="mg_depth_clear_disabled">关闭（默认）</string>
+    <string name="mg_depth_clear_mode1">模式 1</string>
+    <string name="mg_depth_clear_mode2">模式 2</string>
+
+    <!-- 扩展 -->
+    <string name="mg_ext_compute_title">EXT 计算着色器</string>
+    <string name="mg_ext_compute_summary">暴露 GL_EXT_compute_shader 扩展，部分光影与模组需要。</string>
+    <string name="mg_ext_timer_title">EXT 计时查询</string>
+    <string name="mg_ext_timer_summary">暴露 GL_EXT_disjoint_timer_query，供性能统计类模组读取 GPU 耗时。</string>
+    <string name="mg_ext_dsa_title">EXT 直接状态访问</string>
+    <string name="mg_ext_dsa_summary">暴露 GL_EXT_direct_state_access，少数旧模组或渲染工具依赖。</string>
+    <string name="mg_hide_env_title">隐藏 MG 环境变量（Level 1）</string>
+    <string name="mg_hide_env_summary">隐藏 MobileGlues 注入的环境变量，个别整合包或模组会误读这些变量；一般无需开启。</string>
+    <string name="mg_max_cache_title">GLSL 缓存上限</string>
+    <string name="mg_max_cache_summary">缓存编译后的着色器以减少重复编译；0 表示不启用缓存，数值单位为 MB。</string>
+    <string name="mg_unit_mb">MB</string>
+
+    <!-- Multidraw -->
+    <string name="mg_multidraw_order_title">Multidraw 全局顺序</string>
+    <string name="mg_multidraw_order_summary">按顺序填写后端名称并用英文逗号分隔，可包含 native；该顺序会应用到未单独配置的入口。</string>
+    <string name="mg_multidraw_order_label">multidrawOrder</string>
+    <string name="mg_multidraw_order_error">不能为空，留空会导致 MobileGlues 无法确定顺序</string>
+    <string name="mg_multidraw_entry_summary">可选，留空表示沿用全局顺序；后端名称用英文逗号分隔。</string>
+    <string name="mg_multidraw_arrays_title">glMultiDrawArrays 顺序</string>
+    <string name="mg_multidraw_elements_title">glMultiDrawElements 顺序</string>
+    <string name="mg_multidraw_elements_base_vertex_title">glMultiDrawElementsBaseVertex 顺序</string>
+    <string name="mg_multidraw_arrays_indirect_title">glMultiDrawArraysIndirect 顺序</string>
+    <string name="mg_multidraw_elements_indirect_title">glMultiDrawElementsIndirect 顺序</string>
+
+    <!-- 底部操作 -->
+    <string name="mg_actions_title">操作</string>
+    <string name="mg_actions_summary">缓存值在拖动松手、点击箭头或确认手输时保存；其余选项点击“保存”。重启游戏后生效。</string>
+    <string name="mg_max_cache_fixed_summary">固定范围 0–1024 MB，步长 1 MB；512 MB 始终为半格。0 表示不启用。松手后自动保存并回读校验。</string>
+    <string name="mg_config_read_failed">配置读取或修正失败，已禁用编辑，未用默认配置覆盖原文件。</string>
+    <string name="mg_config_retry">重新读取</string>
+    <string name="mg_config_debug_title">GLSL 配置调试日志</string>
+    <string name="mg_config_debug_summary">记录配置路径、每次读写原始值、范围修正、滑条换算和回读结果。开启后重现问题，再导出给我分析；不记录账号和密钥。</string>
+    <string name="mg_config_debug_view">查看调试日志</string>
+    <string name="mg_config_debug_export">导出调试日志</string>
+    <string name="mg_config_debug_missing">尚无调试日志，请先打开日志开关并重现问题</string>
+    <string name="mg_restore_defaults">恢复默认</string>
+    <string name="mg_restore_defaults_title">恢复默认配置</string>
+    <string name="mg_restore_defaults_message">将把 config.json 重置为 MobileGlues 的默认值，当前配置会被覆盖。是否继续？</string>
+    <string name="mg_restore_defaults_confirm">恢复默认</string>
+    <string name="mg_restore_defaults_done">已恢复默认配置</string>
+    <string name="mg_view_log">查看 MG 日志</string>
+    <string name="mg_view_log_missing">用 MobileGlues 启动一次游戏后才会生成 latest.log。</string>
+    <string name="mg_save_failed">保存失败，请检查存储空间或启动器日志</string>
+
+    <!-- 关于页（可选条目文案） -->
+    <string name="mg_about_title">MobileGlues</string>
+    <string name="mg_about_summary">移动端 GL 转 GLES 渲染层，本项目内置其预编译库，以 LGPL-2.1 协议分发。</string>
+
+</resources>

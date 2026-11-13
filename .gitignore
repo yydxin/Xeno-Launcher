@@ -1,0 +1,51 @@
+# IDE and local environment
+*.iml
+.idea/
+.vscode/
+.DS_Store
+**/local.properties
+.env
+.env.*
+
+# Credentials and signing material: never publish real values
+*.jks
+*.keystore
+**/keystore.properties
+.oauth_client_id.txt
+.store_password.txt
+.key_password.txt
+.curseforge_api.txt
+密钥/
+
+# Generated build/download/cache data
+**/.gradle/
+**/.kotlin/
+**/.cxx/
+**/.externalNativeBuild/
+**/build/
+**/target/
+**/__pycache__/
+**/node_modules/
+build-support/
+构建材料/
+*.apk
+*.aab
+*.idsig
+*.hprof
+/captures/
+/design/xeno_icon_512.png
+
+# Local AI/editor session state
+.zcode/
+.agent/
+.agent-teams/
+.claude/
+.cursor/
+.codex/
+.continue/
+.aider/
+.roo/
+.windsurf/
+.trae/
+.gemini/
+.ampersand/
