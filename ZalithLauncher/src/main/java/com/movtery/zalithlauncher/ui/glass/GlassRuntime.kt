@@ -14,6 +14,9 @@ import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionOnScreen
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -67,6 +70,7 @@ private val LocalGlassScroll = staticCompositionLocalOf<GlassScrollRuntime?> { n
 
 @Composable
 fun GlassRuntimeHost(enabled: Boolean, content: @Composable () -> Unit) {
+    RegisterNativeGlassBridge()
     val runtime = remember { GlassScrollRuntime() }
     val throttle = enabled && LocalGlassConfig.current.throttleWhileScrolling
     LaunchedEffect(runtime, throttle) {
@@ -82,6 +86,7 @@ fun GlassRuntimeHost(enabled: Boolean, content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalGlassScroll provides runtime) {
         Box(Modifier.fillMaxSize().then(if (throttle) Modifier.nestedScroll(runtime) else Modifier)) {
             content()
+            GlassToastHost()
         }
     }
 }
@@ -91,14 +96,22 @@ fun GlassRuntimeHost(enabled: Boolean, content: @Composable () -> Unit) {
 fun Modifier.throttledGlassBackground(backdrop: LayerBackdrop): Modifier {
     val runtime = LocalGlassScroll.current
     val throttle = LocalGlassConfig.current.throttleWhileScrolling
-    if (!throttle || runtime == null) return layerBackdrop(backdrop)
+    val wallpaper = LocalGlassWallpaper.current
     val cache = rememberGraphicsLayer()
+    DisposableEffect(wallpaper, cache) {
+        wallpaper?.layer = cache
+        onDispose { wallpaper?.let { if (it.layer === cache) it.layer = null } }
+    }
     val limiter = remember(cache) { GlassFrameLimiter() }
     var recordedSize = remember(cache) { IntSize.Zero }
-    return drawWithContent {
-        runtime.frameNanos // 只订阅绘制失效，不触发页面重组。
+    return onGloballyPositioned {
+        wallpaper?.geometry = androidx.compose.ui.geometry.Rect(it.positionOnScreen(),
+            androidx.compose.ui.geometry.Size(it.size.width.toFloat(), it.size.height.toFloat()))
+    }.drawWithContent {
+        runtime?.frameNanos // 只订阅绘制失效，不触发页面重组。
         val now = SystemClock.elapsedRealtimeNanos()
-        val scrolling = runtime.lastScrollNanos != 0L && now - runtime.lastScrollNanos < 120_000_000L
+        val scrolling = throttle && runtime != null && runtime.lastScrollNanos != 0L &&
+                now - runtime.lastScrollNanos < 120_000_000L
         val currentSize = IntSize(size.width.toInt(), size.height.toInt())
         if (recordedSize != currentSize || limiter.shouldRecord(now, scrolling)) {
             cache.record { this@drawWithContent.drawContent() }

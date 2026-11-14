@@ -113,15 +113,15 @@ fun AppearanceSettingsScreen(
                         position = CardPosition.Top,
                         unit = AllSettings.glassScopeCards,
                         title = "卡片",
-                        summary = "设置卡片、首页卡片等所有 BackgroundCard"
+                        summary = "首页拖拽卡片、设置、下载、账号、文件管理与消息卡片"
                     )
 
                     SwitchSettingsCard(
                         modifier = Modifier.fillMaxWidth(),
                         position = CardPosition.Middle,
                         unit = AllSettings.glassScopeDialogs,
-                        title = "确认对话框",
-                        summary = "通用确认框采样当前页面；API 31+ 模糊，API 33+ 折射；磨砂档使用普通对话框"
+                        title = "对话框与弹出层",
+                        summary = "确认框、编辑框、菜单、提示与底部弹层；独立窗口采样同一壁纸"
                     )
 
                     SwitchSettingsCard(
@@ -134,10 +134,18 @@ fun AppearanceSettingsScreen(
 
                     SwitchSettingsCard(
                         modifier = Modifier.fillMaxWidth(),
-                        position = CardPosition.Bottom,
+                        position = CardPosition.Middle,
                         unit = AllSettings.glassScopeSideBar,
-                        title = "设置侧栏",
-                        summary = "设置页左侧分类导航，切换立即生效"
+                        title = "侧栏与导航",
+                        summary = "设置、下载、版本与文件管理分类导航"
+                    )
+
+                    SwitchSettingsCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        position = CardPosition.Bottom,
+                        unit = AllSettings.glassScopeButtons,
+                        title = "按钮",
+                        summary = "启动、操作与图标按钮，独立于卡片和顶栏开关"
                     )
                 }
             }

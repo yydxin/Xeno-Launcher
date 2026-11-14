@@ -45,13 +45,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.movtery.zalithlauncher.ui.glass.GlassIconButton as IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import com.movtery.zalithlauncher.ui.glass.GlassSurface as Surface
 import androidx.compose.material3.Text
 import com.movtery.zalithlauncher.ui.glass.glassScopeSurface
+import com.movtery.zalithlauncher.ui.glass.LocalInsideGlassBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -196,9 +197,11 @@ fun MainScreen(
         }
     }
 
-    Surface(
+    // Page base is not a card: never run an extra full-screen refraction pass.
+    androidx.compose.material3.Surface(
         modifier = Modifier.fillMaxSize(),
-        color = backgroundColor,
+        color = if (com.movtery.zalithlauncher.ui.glass.LocalGlassEnabled.current && !isBackgroundValid)
+            Color.Transparent else backgroundColor,
         contentColor = onBackgroundColor()
     ) {
         Column(
@@ -306,7 +309,8 @@ private fun <E: TitledNavKey> TopBar(
     val inAiScreen = mainScreenKey is NormalNavKey.AiChat
 
     CompositionLocalProvider(
-        LocalContentColor provides contentColor
+        LocalContentColor provides contentColor,
+        LocalInsideGlassBar provides true
     ) {
         ConstraintLayout(modifier = modifier.glassScopeSurface(
             enabled = AllSettings.glassScopeTopBar.state,

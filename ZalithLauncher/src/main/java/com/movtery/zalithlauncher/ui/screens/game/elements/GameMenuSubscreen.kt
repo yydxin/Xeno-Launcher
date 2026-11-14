@@ -18,7 +18,7 @@
 
 package com.movtery.zalithlauncher.ui.screens.game.elements
 
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn

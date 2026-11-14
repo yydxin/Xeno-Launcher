@@ -42,7 +42,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SecondaryTabRow
-import androidx.compose.material3.Surface
+import com.movtery.zalithlauncher.ui.glass.GlassSurface as Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.nonInteractiveScrollbar
 import androidx.compose.runtime.Composable
@@ -62,7 +62,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
+import com.movtery.zalithlauncher.ui.glass.GlassDialog as Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.movtery.inputmap.keycodes.ControlEventKeycode
 import com.movtery.zalithlauncher.R

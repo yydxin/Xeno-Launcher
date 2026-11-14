@@ -42,6 +42,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -78,6 +79,13 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+/** Host-supplied surface keeps this library independent of launcher theme implementations. */
+typealias CardSurfaceRenderer = @Composable (
+    Modifier, Shape, Color, Color, Dp, @Composable ColumnScope.() -> Unit
+) -> Unit
+
+private val LocalCardSurfaceRenderer = staticCompositionLocalOf<CardSurfaceRenderer?> { null }
+
 /** 网格线以卡片矩形为基准向外淡化的范围 */
 private val GridFadeExtent = 72.dp
 /** 网格线的最大不透明度（卡片矩形处） */
@@ -100,9 +108,13 @@ fun CardGrid(
     containerColor: Color = MaterialTheme.colorScheme.surfaceBright,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     cardBackground: (@Composable (Modifier) -> Modifier)? = null,
+    cardSurface: CardSurfaceRenderer? = null,
 ) {
     val hostDirection = LocalLayoutDirection.current
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+    CompositionLocalProvider(
+        LocalLayoutDirection provides LayoutDirection.Ltr,
+        LocalCardSurfaceRenderer provides cardSurface
+    ) {
         CardGridCanvas(
             state = state,
             modifier = modifier,
@@ -316,6 +328,14 @@ private fun CardSurface(
         Modifier.selectionHandles(color = MaterialTheme.colorScheme.primary)
     } else {
         Modifier
+    }
+
+    val renderer = LocalCardSurfaceRenderer.current
+    if (renderer != null) {
+        renderer(modifier.then(handles), shape, containerColor, contentColor, elevation) {
+            Column(modifier = Modifier.fillMaxSize(), content = content)
+        }
+        return
     }
 
     Card(

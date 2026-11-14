@@ -43,28 +43,28 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
+import com.movtery.zalithlauncher.ui.glass.GlassDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.FilledTonalButton
+import com.movtery.zalithlauncher.ui.glass.GlassFilledTonalButton as FilledTonalButton
 import androidx.compose.material3.FloatingActionButtonMenu
-import androidx.compose.material3.FloatingActionButtonMenuItem
+import com.movtery.zalithlauncher.ui.glass.GlassFloatingActionButtonMenuItem as FloatingActionButtonMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.movtery.zalithlauncher.ui.glass.GlassIconButton as IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.PlainTooltip
-import androidx.compose.material3.SnackbarHost
+import com.movtery.zalithlauncher.ui.glass.GlassPlainTooltip as PlainTooltip
+import com.movtery.zalithlauncher.ui.glass.GlassSnackbarHost as SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Surface
+import com.movtery.zalithlauncher.ui.glass.GlassSurface as Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.ToggleFloatingActionButton
+import com.movtery.zalithlauncher.ui.glass.GlassToggleFloatingActionButton as ToggleFloatingActionButton
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.TopAppBar
+import com.movtery.zalithlauncher.ui.glass.GlassTopAppBar as TopAppBar
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -77,7 +77,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -110,6 +109,9 @@ import com.movtery.zalithlauncher.ui.components.ButtonPosition
 import com.movtery.zalithlauncher.ui.components.PositionButton
 import com.movtery.zalithlauncher.ui.components.PositionFilledTonalButton
 import com.movtery.zalithlauncher.ui.components.SmallOutlinedEditField
+import com.movtery.zalithlauncher.ui.glass.GlassScope
+import com.movtery.zalithlauncher.ui.glass.glassPanelBackground
+import com.movtery.zalithlauncher.ui.glass.isGlassActive
 import io.github.rosemoe.sora.event.PublishSearchResultEvent
 import io.github.rosemoe.sora.lang.Language
 import io.github.rosemoe.sora.widget.CodeEditor
@@ -846,16 +848,20 @@ private fun SearchOptionToggle(
         state = tooltipState,
     ) {
         val shape = RoundedCornerShape(8.dp)
+        val glass = isGlassActive(GlassScope.Buttons)
+        val containerColor = if (checked) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.secondaryContainer
+        }
         Box(
             modifier = Modifier
                 .size(32.dp)
-                .clip(shape)
-                .background(
-                    if (checked) {
-                        MaterialTheme.colorScheme.primary
-                    } else {
-                        MaterialTheme.colorScheme.secondaryContainer
-                    }
+                .glassPanelBackground(shape, containerColor, GlassScope.Buttons)
+                .then(
+                    if (glass && checked) Modifier.background(
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), shape
+                    ) else Modifier
                 )
                 .combinedClickable(
                     onClick = onToggle,
@@ -869,10 +875,11 @@ private fun SearchOptionToggle(
                 painter = painterResource(iconRes),
                 contentDescription = contentDescription,
                 modifier = Modifier.size(16.dp),
-                tint = if (checked) {
-                    MaterialTheme.colorScheme.onPrimary
-                } else {
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                tint = when {
+                    glass && checked -> MaterialTheme.colorScheme.primary
+                    glass -> MaterialTheme.colorScheme.onSurfaceVariant
+                    checked -> MaterialTheme.colorScheme.onPrimary
+                    else -> MaterialTheme.colorScheme.onSecondaryContainer
                 }
             )
         }

@@ -20,7 +20,7 @@ package com.movtery.zalithlauncher.viewmodel
 
 import android.net.Uri
 import android.view.KeyEvent
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.movtery.zalithlauncher.game.version.installed.Version

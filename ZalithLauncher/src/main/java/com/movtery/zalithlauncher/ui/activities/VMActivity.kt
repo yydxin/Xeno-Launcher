@@ -36,7 +36,7 @@ import android.view.TextureView
 import android.view.TextureView.SurfaceTextureListener
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels

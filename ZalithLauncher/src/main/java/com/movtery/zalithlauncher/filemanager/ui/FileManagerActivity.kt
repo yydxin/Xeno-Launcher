@@ -27,6 +27,11 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import com.movtery.zalithlauncher.ui.screens.content.elements.Background
+import com.movtery.zalithlauncher.ui.glass.LocalGlassEnabled
+import com.movtery.zalithlauncher.viewmodel.BackgroundViewModel
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -70,6 +75,7 @@ class FileManagerActivity : ComponentActivity() {
 
     // Compose 可观察，重唤起重建 VM 后自动重组
     private var _vm by mutableStateOf<FileManagerViewModel?>(null)
+    private var backgroundViewModel by mutableStateOf<BackgroundViewModel?>(null)
 
     override val defaultViewModelCreationExtras: CreationExtras
         get() = MutableCreationExtras(super.defaultViewModelCreationExtras).apply {
@@ -88,7 +94,10 @@ class FileManagerActivity : ComponentActivity() {
         initializeFromIntent()
 
         setContent {
-            ZalithLauncherTheme {
+            ZalithLauncherTheme(backgroundViewModel = backgroundViewModel) {
+                if (LocalGlassEnabled.current) backgroundViewModel?.let { background ->
+                    Background(viewModel = background, modifier = Modifier.fillMaxSize())
+                }
                 FileManagerRootScreen(
                     initResult = initResult,
                     vm = _vm,
@@ -120,6 +129,7 @@ class FileManagerActivity : ComponentActivity() {
 
         // 重建 ViewModel
         viewModelStore.clear()
+        backgroundViewModel = ViewModelProvider(this)[BackgroundViewModel::class.java]
         _vm = if (initResult is FileManagerInitResult.Ok) {
             ViewModelProvider(this)[FileManagerViewModel::class.java]
         } else {

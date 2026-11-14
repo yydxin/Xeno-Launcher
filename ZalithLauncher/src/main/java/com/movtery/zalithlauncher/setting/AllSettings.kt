@@ -108,14 +108,17 @@ object AllSettings : SettingsRegistry() {
     /** 玻璃应用到卡片 */
     val glassScopeCards = boolSetting("glassScopeCards", true)
 
+    /** 玻璃应用到按钮（包括启动按钮和图标按钮） */
+    val glassScopeButtons = boolSetting("glassScopeButtons", true)
+
     /** 玻璃应用到对话框 */
     val glassScopeDialogs = boolSetting("glassScopeDialogs", true)
 
     /** 玻璃应用到顶栏 */
-    val glassScopeTopBar = boolSetting("glassScopeTopBar", false)
+    val glassScopeTopBar = boolSetting("glassScopeTopBar", true)
 
     /** 设置侧栏；沿用旧存储键，保留已有开关值。项目没有独立底栏。 */
-    val glassScopeSideBar = boolSetting("glassScopeBottomBar", false)
+    val glassScopeSideBar = boolSetting("glassScopeBottomBar", true)
 
     /** 档位覆盖（调试） */
     val glassTierOverride = enumSetting("glassTierOverride", com.movtery.zalithlauncher.ui.glass.GlassTierOverride.AUTO)

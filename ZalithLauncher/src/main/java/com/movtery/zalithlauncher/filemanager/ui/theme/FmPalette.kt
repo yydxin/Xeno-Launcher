@@ -25,7 +25,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 @Composable
-fun fmBackgroundColor(): Color = MaterialTheme.colorScheme.surfaceContainer
+fun fmBackgroundColor(): Color =
+    if (com.movtery.zalithlauncher.ui.glass.LocalGlassEnabled.current) Color.Transparent
+    else MaterialTheme.colorScheme.surfaceContainer
 @Composable
 fun fmOnBackgroundColor(): Color = MaterialTheme.colorScheme.onSurfaceVariant
 

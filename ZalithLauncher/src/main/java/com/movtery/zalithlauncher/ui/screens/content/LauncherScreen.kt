@@ -35,11 +35,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.DropdownMenu
+import com.movtery.zalithlauncher.ui.glass.GlassDropdownMenu as DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.movtery.zalithlauncher.ui.glass.GlassIconButton as IconButton
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -737,14 +737,16 @@ private fun VersionManagerLayout(
                 ) {
                     Text(
                         modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
-                        text = version.getVersionName(),
+                        text = com.movtery.zalithlauncher.ui.screens.content.home.version.versionCardTitle(
+                            version.getVersionName(), version.getVersionInfo()?.getInfoString()
+                        ),
                         style = MaterialTheme.typography.labelMedium,
                         maxLines = 1
                     )
                     if (version.isValid()) {
                         Text(
                             modifier = Modifier.basicMarquee(iterations = Int.MAX_VALUE),
-                            text = version.getVersionSummary(),
+                            text = version.getVersionInfo()?.getInfoString().orEmpty(),
                             style = MaterialTheme.typography.labelSmall,
                             maxLines = 1
                         )

@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.movtery.zalithlauncher.ui.glass.glassPanelBackground
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -88,8 +89,7 @@ fun TaskLogCard(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(8.dp))
-                .background(color = MaterialTheme.colorScheme.surfaceContainer),
+                .glassPanelBackground(RoundedCornerShape(8.dp), MaterialTheme.colorScheme.surfaceContainer),
             state = listState,
             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 6.dp)
         ) {

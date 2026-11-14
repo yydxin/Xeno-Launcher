@@ -21,7 +21,7 @@ package com.movtery.zalithlauncher.ui.screens.game.multiplayer
 import android.content.Context
 import android.content.Intent
 import android.net.VpnService
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.result.ActivityResult
 import androidx.compose.runtime.Composable

@@ -21,7 +21,7 @@ package com.movtery.zalithlauncher.ui.screens.game
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
+import com.movtery.zalithlauncher.ui.glass.GlassButton as Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect

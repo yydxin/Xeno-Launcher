@@ -22,12 +22,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Card
+import com.movtery.zalithlauncher.ui.glass.GlassCard as Card
+import com.movtery.zalithlauncher.ui.glass.GlassSurface as Surface
+import com.movtery.zalithlauncher.ui.glass.isGlassActive
+import com.movtery.zalithlauncher.ui.glass.LocalGlassSurfaceScope
 import androidx.compose.material3.CardColors
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CardElevation
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.UiComposable
@@ -63,15 +65,12 @@ fun BackgroundCard(
     border: BorderStroke? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val glassOn = LocalGlassEnabled.current && AllSettings.glassScopeCards.state &&
-            LocalGlassTier.current != GlassTier.FROST && LocalGlassBackdrop.current != null
-    val frostOn = LocalGlassEnabled.current && AllSettings.glassScopeCards.state &&
-            LocalGlassTier.current == GlassTier.FROST
+    val glassOn = isGlassActive(LocalGlassSurfaceScope.current)
 
     Card(
         modifier = modifier,
         shape = shape,
-        colors = if (glassOn || frostOn) CardDefaults.cardColors(
+        colors = if (glassOn) CardDefaults.cardColors(
             containerColor = Color.Transparent,
             contentColor = onCardColor()
         ) else colors,
@@ -80,12 +79,10 @@ fun BackgroundCard(
     ) {
         Column(
             modifier = Modifier
-                .then(if (glassOn) Modifier.glassSurface(shape) else Modifier)
-                .then(if (frostOn) Modifier.frostedSurface(shape) else Modifier)
                 .backgroundGlass(
                     blur = blur,
                     color = colors.containerColor,
-                    enabled = influencedByBackground && !glassOn && !frostOn
+                    enabled = influencedByBackground && !glassOn
                 ),
             content = content
         )
@@ -113,15 +110,12 @@ fun BackgroundCard(
     enabled: Boolean = true,
     content: @Composable @UiComposable ColumnScope.() -> Unit
 ) {
-    val glassOn = LocalGlassEnabled.current && AllSettings.glassScopeCards.state &&
-            LocalGlassTier.current != GlassTier.FROST && LocalGlassBackdrop.current != null
-    val frostOn = LocalGlassEnabled.current && AllSettings.glassScopeCards.state &&
-            LocalGlassTier.current == GlassTier.FROST
+    val glassOn = isGlassActive(LocalGlassSurfaceScope.current)
 
     Card(
         modifier = modifier,
         shape = shape,
-        colors = if (glassOn || frostOn) CardDefaults.cardColors(
+        colors = if (glassOn) CardDefaults.cardColors(
             containerColor = Color.Transparent,
             contentColor = onCardColor(),
             disabledContainerColor = Color.Transparent
@@ -133,12 +127,10 @@ fun BackgroundCard(
     ) {
         Column(
             modifier = Modifier
-                .then(if (glassOn) Modifier.glassSurface(shape) else Modifier)
-                .then(if (frostOn) Modifier.frostedSurface(shape) else Modifier)
                 .backgroundGlass(
                     blur = blur,
                     color = colors.containerColor,
-                    enabled = influencedByBackground && !glassOn && !frostOn
+                    enabled = influencedByBackground && !glassOn
                 ),
             content = content
         )

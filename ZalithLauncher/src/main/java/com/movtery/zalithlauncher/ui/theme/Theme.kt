@@ -689,6 +689,9 @@ fun ZalithLauncherTheme(
         com.movtery.zalithlauncher.ui.glass.GlassConfig.fromJson(glassConfigJson)
     }
     val glassBackdrop = com.kyant.backdrop.backdrops.rememberLayerBackdrop()
+    val glassWallpaper = remember(glassEnabled, backgroundViewModel?.refreshTrigger, currentDisplayScheme) {
+        com.movtery.zalithlauncher.ui.glass.GlassWallpaper()
+    }
 
     CompositionLocalProvider(
         LocalBackgroundViewModel provides backgroundViewModel,
@@ -696,6 +699,7 @@ fun ZalithLauncherTheme(
         com.movtery.zalithlauncher.ui.glass.LocalGlassGameRunning provides gameRunning,
         com.movtery.zalithlauncher.ui.glass.LocalGlassBackdrop provides
                 (if (glassEnabled) glassBackdrop else null),
+        com.movtery.zalithlauncher.ui.glass.LocalGlassWallpaper provides (if (glassEnabled) glassWallpaper else null),
         com.movtery.zalithlauncher.ui.glass.LocalGlassEnabled provides glassEnabled,
         com.movtery.zalithlauncher.ui.glass.LocalGlassConfig provides glassConfig,
         com.movtery.zalithlauncher.ui.glass.LocalGlassTier provides glassTier

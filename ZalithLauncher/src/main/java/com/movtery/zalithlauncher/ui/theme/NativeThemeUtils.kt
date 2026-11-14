@@ -239,6 +239,7 @@ fun MaterialAlertDialogBuilder.createThemed(): AlertDialog {
             getButton(AlertDialog.BUTTON_POSITIVE)?.applyThemeColors(colors)
             getButton(AlertDialog.BUTTON_NEGATIVE)?.applyThemeColors(colors)
             getButton(AlertDialog.BUTTON_NEUTRAL)?.applyThemeColors(colors)
+            com.movtery.zalithlauncher.ui.glass.installNativeGlass(this@apply)
         }
     }
 }

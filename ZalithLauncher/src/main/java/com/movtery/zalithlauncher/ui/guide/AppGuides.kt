@@ -18,13 +18,13 @@
 
 package com.movtery.zalithlauncher.ui.guide
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -44,6 +43,9 @@ import com.movtery.guide.NodeClickMode
 import com.movtery.guide.rememberGuide
 import com.movtery.zalithlauncher.BuildKeys
 import com.movtery.zalithlauncher.R
+import com.movtery.zalithlauncher.ui.glass.GlassScope
+import com.movtery.zalithlauncher.ui.glass.glassPanelBackground
+import com.movtery.zalithlauncher.ui.glass.isGlassActive
 import com.movtery.zalithlauncher.utils.logging.Logger
 import com.movtery.zalithlauncher.viewmodel.EventViewModel
 
@@ -215,11 +217,15 @@ fun EventViewModel.sendStartGuideOnce(group: GuideKeys.Keys) {
 
 @Composable
 fun NextTipLabel(tip: NextTip) {
+    val glass = isGlassActive(GlassScope.Cards)
     Box(
         modifier = Modifier
             .widthIn(max = 360.dp)
-            .clip(MaterialTheme.shapes.large)
-            .background(Color.Black.copy(alpha = 0.4f))
+            .glassPanelBackground(
+                shape = MaterialTheme.shapes.large,
+                color = Color.Black.copy(alpha = 0.4f),
+                scope = GlassScope.Cards
+            )
             .alpha(0.8f)
     ) {
         Text(
@@ -228,7 +234,8 @@ fun NextTipLabel(tip: NextTip) {
                 NextTip.TapBlank -> stringResource(R.string.guide_tip_blank)
                 NextTip.Finish -> stringResource(R.string.guide_tip_finish)
             },
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodySmall,
+            color = if (glass) MaterialTheme.colorScheme.onSurface else Color.White
         )
     }
 }
@@ -241,18 +248,23 @@ private fun GuideCard(
     modifier: Modifier = Modifier,
     text: @Composable ColumnScope.() -> Unit,
 ) {
+    val glass = isGlassActive(GlassScope.Cards)
     Box(
         modifier = modifier
             .widthIn(max = 360.dp)
-            .clip(MaterialTheme.shapes.extraLarge)
-            .background(Color.Black.copy(alpha = 0.4f))
+            .glassPanelBackground(
+                shape = MaterialTheme.shapes.extraLarge,
+                color = Color.Black.copy(alpha = 0.4f),
+                scope = GlassScope.Cards
+            )
     ) {
         Column(
             modifier = Modifier.padding(all = 18.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             CompositionLocalProvider(
-                LocalTextStyle provides MaterialTheme.typography.bodyMedium
+                LocalTextStyle provides MaterialTheme.typography.bodyMedium,
+                LocalContentColor provides if (glass) MaterialTheme.colorScheme.onSurface else Color.White
             ) {
                 text()
             }

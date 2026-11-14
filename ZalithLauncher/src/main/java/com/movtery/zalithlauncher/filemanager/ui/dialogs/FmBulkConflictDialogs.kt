@@ -34,12 +34,13 @@ import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemColors
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
+import com.movtery.zalithlauncher.ui.glass.GlassModalBottomSheet as ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,6 +51,8 @@ import com.movtery.zalithlauncher.filemanager.ui.theme.fmSecondaryTextColor
 import com.movtery.zalithlauncher.ui.components.ButtonPosition
 import com.movtery.zalithlauncher.ui.components.PositionButton
 import com.movtery.zalithlauncher.ui.components.PositionFilledTonalButton
+import com.movtery.zalithlauncher.ui.glass.LocalGlassSurfaceScope
+import com.movtery.zalithlauncher.ui.glass.isGlassActive
 
 /**
  * 多选模式批量操作对话框
@@ -126,7 +129,10 @@ fun FmBulkActionsDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(32.dp)
-                    .background(MaterialTheme.colorScheme.surface)
+                    .background(
+                        if (isGlassActive(LocalGlassSurfaceScope.current)) Color.Transparent
+                        else MaterialTheme.colorScheme.surface
+                    )
             )
         }
     }
@@ -143,7 +149,10 @@ private fun FmBulkActionItem(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        colors = colors,
+        // This row belongs to the sheet's surface; do not draw an opaque layer over it.
+        colors = if (isGlassActive(LocalGlassSurfaceScope.current)) {
+            colors.copy(containerColor = Color.Transparent)
+        } else colors,
         leadingContent = {
             Icon(
                 painter = icon,

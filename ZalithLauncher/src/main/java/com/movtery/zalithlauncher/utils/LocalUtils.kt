@@ -28,7 +28,7 @@ import android.os.Build
 import android.os.Process
 import android.util.Log
 import android.view.KeyEvent
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import com.google.gson.GsonBuilder
 import com.movtery.zalithlauncher.BuildConfig
 import com.movtery.zalithlauncher.BuildKeys

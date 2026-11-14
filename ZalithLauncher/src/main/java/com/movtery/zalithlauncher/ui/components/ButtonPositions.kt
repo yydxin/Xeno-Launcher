@@ -26,6 +26,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.movtery.zalithlauncher.ui.glass.GlassScope
+import com.movtery.zalithlauncher.ui.glass.glassScopeSurface
+import com.movtery.zalithlauncher.ui.glass.isGlassActive
 import com.movtery.zalithlauncher.ui.screens.content.elements.DisabledAlpha
 
 /**
@@ -81,17 +84,22 @@ private fun PositionButtonBase(
     contentPadding: PaddingValues,
     content: @Composable RowScope.() -> Unit
 ) {
-    val shape = rememberButtonPosShape(position)
+    val glassEnabled = isGlassActive(GlassScope.Buttons)
+    val shape = com.movtery.zalithlauncher.ui.glass.glassShape(rememberButtonPosShape(position), glassEnabled)
     CompositionLocalProvider(
         LocalMinimumInteractiveComponentSize provides 0.dp,
         LocalTextStyle provides MaterialTheme.typography.labelLarge
     ) {
         Surface(
-            modifier = modifier.semantics { role = Role.Button },
+            modifier = modifier
+                .glassScopeSurface(glassEnabled, shape)
+                .semantics { role = Role.Button },
             shape = shape,
             onClick = onClick,
-            color = containerColor,
-            contentColor = contentColor,
+            enabled = enabled,
+            color = if (glassEnabled) Color.Transparent else containerColor,
+            contentColor = if (glassEnabled && contentColor == MaterialTheme.colorScheme.onPrimary)
+                MaterialTheme.colorScheme.onSurface else contentColor,
             tonalElevation = 0.dp,
             shadowElevation = shadowElevation,
             border = border

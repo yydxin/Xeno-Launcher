@@ -35,7 +35,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
+import com.movtery.zalithlauncher.ui.glass.GlassButton as Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -219,15 +219,11 @@ private fun TallContent(
             //头行高度即图标高度（名称、信息行与状态标签不会超过图标），扣除后即图标下方的空白
             val blank = maxHeight - iconSize - DetailTopGap
             val summaryLine = lineHeightDp(MaterialTheme.typography.labelMedium)
-            val summaryValid = version?.isSummaryValid() == true
-            //空白区文本：版本描述优先，缺失时由版本详细信息充当；达到高度门槛且放得下一行时显示
+            // The second level always owns version/loader details. Only real, distinct
+            // user descriptions may occupy the optional extra area.
             val blankText = version
-                ?.takeIf {
-                    spanHeight >= DESCRIPTION_START_SPAN &&
-                            blank >= summaryLine &&
-                            (summaryValid || it.getVersionInfo() != null)
-                }
-                ?.getVersionSummary()
+                ?.takeIf { spanHeight >= DESCRIPTION_START_SPAN && blank >= summaryLine }
+                ?.homeCardDescription()
             //描述行的行数与空白高度一致，未容纳的文本以省略号收尾
             val blankMaxLines = (blank.value / summaryLine.value).toInt()
 
@@ -245,9 +241,8 @@ private fun TallContent(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(DetailItemGap)
                     ) {
-                        CardNameText(card = card, version = version)
-                        //信息位于名称下方；版本缺失描述时，信息自门槛起下移充当描述行，不再显示于此
-                        if (showDetails && version != null && (summaryValid || blankText == null)) {
+                        CardNameText(card = card, version = version, showDetails = showDetails)
+                        if (showDetails && version != null) {
                             InfoRow(version = version)
                         }
                         when (card?.status) {
@@ -317,7 +312,8 @@ private fun InfoRow(version: Version) {
 private fun CardNameText(
     modifier: Modifier = Modifier,
     card: VersionCardState?,
-    version: Version?
+    version: Version?,
+    showDetails: Boolean
 ) {
     card?.record?.versionName?.let { name ->
         Text(
@@ -325,7 +321,7 @@ private fun CardNameText(
                 .basicMarquee(iterations = Int.MAX_VALUE)
                 .then(if (version == null) Modifier.alpha(0.55f) else Modifier),
             maxLines = 1,
-            text = name,
+            text = version?.homeCardTitle() ?: name,
             style = MaterialTheme.typography.labelLarge
         )
     }
@@ -382,7 +378,7 @@ private fun CardTexts(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(DetailItemGap)
     ) {
-        CardNameText(card = card, version = version)
+        CardNameText(card = card, version = version, showDetails = showDetails)
 
         when (val status = card?.status) {
             is VersionCardStatus.Available -> if (showDetails) {

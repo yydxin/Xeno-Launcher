@@ -11,6 +11,10 @@
 package com.movtery.zalithlauncher.ui.glass
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Brush
+import com.movtery.zalithlauncher.setting.AllSettings
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -50,6 +54,7 @@ fun Modifier.glassSurface(
 
     return this
         .clip(shape)
+        .then(GlassPositionInvalidation)
         .drawBackdrop(
             backdrop = backdrop,
             shape = { shape },
@@ -62,7 +67,9 @@ fun Modifier.glassSurface(
             shadow = { if (config.shadowRadius > 0f) Shadow(radius = config.shadowRadius.dp) else null },
             effects = {
                 blur(config.blurRadius.dp.toPx())
-                if (tier == GlassTier.AGSL) {
+                // lens 只支持 CornerBasedShape / RoundedRectangularShape；其它形状传进去会在
+                // 绘制阶段抛 UnsupportedOperationException（整个进程闪退），所以这里再兜一层。
+                if (tier == GlassTier.AGSL && shape is CornerBasedShape) {
                     lens(
                         refractionHeight = config.refractionHeight.dp.toPx(),
                         refractionAmount = config.refractionAmount,
@@ -85,7 +92,14 @@ fun Modifier.frostedSurface(shape: Shape, config: GlassConfig = LocalGlassConfig
     val base = Color(config.tintColor)
     return this
         .clip(shape)
-        .background(base.copy(alpha = (config.tintAlpha + 0.18f).coerceAtMost(0.6f)))
+        .background(Brush.linearGradient(listOf(
+            base.copy(alpha = (config.tintAlpha + 0.18f).coerceAtMost(0.6f)),
+            base.copy(alpha = (config.tintAlpha + 0.08f).coerceAtMost(0.5f))
+        )))
+        .then(if (config.borderWidth > 0f) Modifier.border(
+            config.borderWidth.dp,
+            Color.White.copy(alpha = (config.highlightIntensity * 0.3f).coerceIn(0f, 0.6f)), shape
+        ) else Modifier)
 }
 
 @Suppress("unused")
@@ -95,6 +109,46 @@ private val DefaultGlassShape = RoundedCornerShape(28.dp)
 @Composable
 fun Modifier.glassScopeSurface(enabled: Boolean, shape: Shape): Modifier {
     if (!enabled || !LocalGlassEnabled.current) return this
-    return if (LocalGlassTier.current == GlassTier.FROST) frostedSurface(shape)
-    else glassSurface(shape)
+    val outline = glassShape(shape, true)
+    return if (LocalGlassTier.current == GlassTier.FROST || LocalGlassBackdrop.current == null) frostedSurface(outline)
+    else glassSurface(outline)
+}
+
+/**
+ * Rectangles stay rectangular and circles stay circular; other rounded shapes follow the studio token.
+ * 矩形在这里换成 0 圆角的 [RoundedCornerShape]：视觉上仍是矩形，但它是 CornerBasedShape，
+ * backdrop 的 lens 才能接受（直接传 RectangleShape 会在 AGSL 档位绘制时闪退）。
+ */
+@Composable
+fun glassShape(shape: Shape, active: Boolean): Shape = when {
+    !active -> shape
+    shape == androidx.compose.foundation.shape.CircleShape -> shape
+    shape == androidx.compose.ui.graphics.RectangleShape -> RoundedCornerShape(0.dp)
+    else -> RoundedCornerShape(LocalGlassConfig.current.cornerRadius.dp)
+}
+
+/**
+ * Items that belong to an already-glassy bar must not stack a second refraction layer on it.
+ * Explicit bars mark their own content, so cards keep their buttons even inside a glass card.
+ */
+val LocalInsideGlassBar = staticCompositionLocalOf { false }
+
+/** A Box/list panel gets the same renderer without hard-coded alpha in callers. */
+@Composable
+fun Modifier.glassPanelBackground(shape: Shape, color: Color, scope: GlassScope = LocalGlassSurfaceScope.current): Modifier =
+    if (isGlassActive(scope)) glassScopeSurface(true, shape) else clip(shape).background(color)
+
+/** Scope is selected by the semantic container, never inferred from its color/alpha. */
+enum class GlassScope { Cards, Buttons, TopBar, SideBar, Dialogs }
+
+/** Independent windows override the default surface scope without coupling button switches. */
+val LocalGlassSurfaceScope = staticCompositionLocalOf { GlassScope.Cards }
+
+@Composable
+fun isGlassActive(scope: GlassScope): Boolean = LocalGlassEnabled.current && when (scope) {
+    GlassScope.Cards -> AllSettings.glassScopeCards.state
+    GlassScope.Buttons -> AllSettings.glassScopeButtons.state
+    GlassScope.TopBar -> AllSettings.glassScopeTopBar.state
+    GlassScope.SideBar -> AllSettings.glassScopeSideBar.state
+    GlassScope.Dialogs -> AllSettings.glassScopeDialogs.state
 }

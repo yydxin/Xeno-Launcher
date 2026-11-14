@@ -40,9 +40,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import com.movtery.zalithlauncher.ui.glass.GlassIconButton as IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import com.movtery.zalithlauncher.ui.glass.GlassSurface as Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -231,12 +231,25 @@ fun HomeGrid(
                 state = state,
                 containerColor = cardColor(),
                 contentColor = onCardColor(),
-                cardBackground = { base ->
-                    base.backgroundGlass(
-                        blur = AllSettings.backgroundBlur.state,
-                        color = cardColor(),
-                        enabled = true
-                    )
+                cardSurface = { surfaceModifier, shape, container, foreground, elevation, content ->
+                    com.movtery.zalithlauncher.ui.glass.GlassCard(
+                        modifier = surfaceModifier,
+                        shape = shape,
+                        colors = androidx.compose.material3.CardDefaults.cardColors(
+                            containerColor = container, contentColor = foreground
+                        ),
+                        elevation = androidx.compose.material3.CardDefaults.cardElevation(defaultElevation = elevation)
+                    ) {
+                        Column(
+                            modifier = Modifier.fillMaxSize().backgroundGlass(
+                                blur = AllSettings.backgroundBlur.state,
+                                color = container,
+                                enabled = !com.movtery.zalithlauncher.ui.glass.isGlassActive(
+                                    com.movtery.zalithlauncher.ui.glass.GlassScope.Cards
+                                )
+                            ), content = content
+                        )
+                    }
                 },
             )
         }

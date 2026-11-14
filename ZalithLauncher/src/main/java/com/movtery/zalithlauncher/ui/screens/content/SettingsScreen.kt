@@ -35,7 +35,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationRailItem
+import com.movtery.zalithlauncher.ui.glass.GlassNavigationRailItem as NavigationRailItem
 import androidx.compose.material3.Text
 import com.movtery.zalithlauncher.ui.glass.glassScopeSurface
 import androidx.compose.runtime.Composable

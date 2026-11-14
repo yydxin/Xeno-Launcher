@@ -34,17 +34,15 @@ import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonColors
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RichTooltip
+import com.movtery.zalithlauncher.ui.glass.GlassRichTooltip as RichTooltip
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
@@ -74,6 +72,11 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.movtery.zalithlauncher.ui.glass.GlassButton
+import com.movtery.zalithlauncher.ui.glass.GlassIconButton
+import com.movtery.zalithlauncher.ui.glass.GlassScope
+import com.movtery.zalithlauncher.ui.glass.glassScopeSurface
+import com.movtery.zalithlauncher.ui.glass.isGlassActive
 import com.movtery.zalithlauncher.ui.screens.content.elements.DisabledAlpha
 import kotlinx.coroutines.launch
 
@@ -97,7 +100,7 @@ fun ScalingActionButton(
         label = "ButtonScale"
     )
 
-    Button(
+    GlassButton(
         onClick = onClick,
         modifier = modifier.graphicsLayer {
             scaleX = scale.value
@@ -205,9 +208,11 @@ fun BaseIconTextButton(
     enabled: Boolean = true,
     onLongClick: () -> Unit = {},
 ) {
+    val glassEnabled = isGlassActive(GlassScope.Buttons)
     Row(
         modifier = modifier
-            .clip(shape = shape)
+            .glassScopeSurface(glassEnabled, shape)
+            .clip(shape = com.movtery.zalithlauncher.ui.glass.glassShape(shape, glassEnabled))
             .combinedClickable(enabled = enabled, onClick = onClick, onLongClick = onLongClick)
             .padding(PaddingValues(horizontal = 8.dp, vertical = 4.dp))
             .alpha(if (enabled) 1f else DisabledAlpha),
@@ -230,11 +235,14 @@ fun TouchableButton(
     onTouch: (isPressed: Boolean) -> Unit = {},
     text: String
 ) {
+    val glassEnabled = isGlassActive(GlassScope.Buttons)
+    val colors = ButtonDefaults.buttonColors()
     Surface(
-        shape = CircleShape,
-        color = ButtonDefaults.buttonColors().containerColor,
-        contentColor = ButtonDefaults.buttonColors().contentColor,
+        shape = com.movtery.zalithlauncher.ui.glass.glassShape(CircleShape, glassEnabled),
+        color = if (glassEnabled) Color.Transparent else colors.containerColor,
+        contentColor = if (glassEnabled) MaterialTheme.colorScheme.onSurface else colors.contentColor,
         modifier = modifier
+            .glassScopeSurface(glassEnabled, CircleShape)
             .semantics { role = Role.Button }
             .pointerInput(Unit) {
                 awaitEachGesture {
@@ -252,7 +260,7 @@ fun TouchableButton(
     ) {
         val mergedStyle = LocalTextStyle.current.merge(MaterialTheme.typography.labelLarge)
         CompositionLocalProvider(
-            LocalContentColor provides ButtonDefaults.buttonColors().contentColor,
+            LocalContentColor provides if (glassEnabled) MaterialTheme.colorScheme.onSurface else colors.contentColor,
             LocalTextStyle provides mergedStyle,
         ) {
             Row(
@@ -312,7 +320,7 @@ fun TooltipIconButton(
         state = tooltipState,
         enableUserInput = false
     ) {
-        IconButton(
+        GlassIconButton(
             onClick = {
                 coroutineScope.launch {
                     if (tooltipState.isVisible) {

@@ -19,7 +19,7 @@
 package com.movtery.zalithlauncher.game.account
 
 import android.content.Context
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.movtery.zalithlauncher.R

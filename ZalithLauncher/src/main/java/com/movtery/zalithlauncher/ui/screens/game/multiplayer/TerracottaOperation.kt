@@ -20,7 +20,7 @@ package com.movtery.zalithlauncher.ui.screens.game.multiplayer
 
 import android.app.Activity
 import android.content.Intent
-import android.widget.Toast
+import com.movtery.zalithlauncher.ui.glass.GlassToast as Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
